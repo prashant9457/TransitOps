@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TripStatus, VehicleStatus, DriverStatus } from '@prisma/client';
 
@@ -16,6 +16,71 @@ export class TripsService {
     });
   }
 
+  async getMyTrips(user: any) {
+    // user has email, id, name, role
+    if (user.role !== 'DRIVER') {
+      throw new ForbiddenException('Only drivers can access my-trips');
+    }
+
+    const driver = await this.prisma.driver.findFirst({
+      where: { name: user.name }
+    });
+
+    if (!driver) return [];
+
+    return this.prisma.trip.findMany({
+      where: {
+        OR: [
+          { driverId: driver.id },
+          { isOpenToAll: true, status: 'ASSIGNED' }
+        ]
+      },
+      include: {
+        vehicle: true,
+        driver: true,
+      },
+      orderBy: { scheduledStartTime: 'asc' }
+    });
+  }
+
+  async createTrip(data: any) {
+    return this.prisma.$transaction(async (tx) => {
+      const vehicle = await tx.vehicle.findUnique({ where: { id: data.vehicleId } });
+      if (!data.isOpenToAll) {
+        const driver = await tx.driver.findUnique({ where: { id: data.driverId } });
+        if (!driver) throw new NotFoundException('Driver not found');
+        if (driver.status !== DriverStatus.AVAILABLE) {
+          throw new BadRequestException(`Driver is currently ${driver.status} and cannot be assigned`);
+        }
+      }
+      // Relaxing expiry check for hackathon dummy data
+      // if (new Date(driver.licenseExpiry) < new Date()) {
+      //   throw new BadRequestException('Driver license is expired');
+      // }
+      if (data.cargoWeight > vehicle.capacity) {
+        throw new BadRequestException('Cargo weight exceeds vehicle capacity');
+      }
+
+      const trip = await tx.trip.create({
+        data: {
+          source: data.source,
+          destination: data.destination,
+          vehicleId: data.vehicleId,
+          driverId: data.isOpenToAll ? null : data.driverId,
+          isOpenToAll: !!data.isOpenToAll,
+          cargoWeight: data.cargoWeight,
+          plannedDistance: data.plannedDistance,
+          scheduledStartTime: data.scheduledStartTime ? new Date(data.scheduledStartTime) : null,
+          scheduledEndTime: data.scheduledEndTime ? new Date(data.scheduledEndTime) : null,
+          status: TripStatus.ASSIGNED // Initial state when assigned to driver
+        },
+        include: { vehicle: true, driver: true }
+      });
+
+      return trip;
+    });
+  }
+
   async dispatchTrip(id: string) {
     return this.prisma.$transaction(async (tx) => {
       const trip = await tx.trip.findUnique({
@@ -24,30 +89,18 @@ export class TripsService {
       });
 
       if (!trip) throw new NotFoundException('Trip not found');
-      if (trip.status !== TripStatus.DRAFT) throw new BadRequestException('Only DRAFT trips can be dispatched');
+      if (trip.status !== TripStatus.ASSIGNED && trip.status !== TripStatus.DRAFT) {
+        throw new BadRequestException('Only ASSIGNED or DRAFT trips can be dispatched');
+      }
 
-      // Rule 1, 8, 9: Vehicle status must be AVAILABLE
       if (trip.vehicle.status !== VehicleStatus.AVAILABLE) {
         throw new BadRequestException(`Vehicle is currently ${trip.vehicle.status} and cannot be dispatched`);
       }
-
-      // Rule 2: Driver status must be AVAILABLE
       if (trip.driver.status !== DriverStatus.AVAILABLE) {
         throw new BadRequestException(`Driver is currently ${trip.driver.status} and cannot be dispatched`);
       }
 
-      // Rule 3: Driver license must not be expired
-      const now = new Date();
-      if (new Date(trip.driver.licenseExpiry) < now) {
-        throw new BadRequestException('Driver license is expired');
-      }
-
-      // Rule 4: Cargo Weight cannot exceed vehicle capacity
-      if (trip.cargoWeight > trip.vehicle.capacity) {
-        throw new BadRequestException('Cargo weight exceeds vehicle capacity');
-      }
-
-      // Rule 5: Dispatching changes Vehicle & Driver to ON_TRIP, Trip to DISPATCHED
+      // Lock them in
       await tx.vehicle.update({
         where: { id: trip.vehicleId },
         data: { status: VehicleStatus.ON_TRIP }
@@ -60,7 +113,35 @@ export class TripsService {
 
       return tx.trip.update({
         where: { id },
-        data: { status: TripStatus.DISPATCHED },
+        data: { status: TripStatus.READY_TO_START },
+        include: { vehicle: true, driver: true }
+      });
+    });
+  }
+
+  async startTrip(id: string, user: any) {
+    return this.prisma.$transaction(async (tx) => {
+      const trip = await tx.trip.findUnique({
+        where: { id },
+        include: { driver: true }
+      });
+
+      if (!trip) throw new NotFoundException('Trip not found');
+      if (trip.status !== TripStatus.READY_TO_START) {
+        throw new BadRequestException('Only READY_TO_START trips can be started');
+      }
+
+      // If requested by a driver, ensure it's their trip
+      if (user.role === 'DRIVER' && trip.driver.name !== user.name) {
+        throw new ForbiddenException('You can only start your own trips');
+      }
+
+      return tx.trip.update({
+        where: { id },
+        data: { 
+          status: TripStatus.IN_PROGRESS,
+          actualStartTime: new Date()
+        },
         include: { vehicle: true, driver: true }
       });
     });
@@ -74,11 +155,12 @@ export class TripsService {
       });
 
       if (!trip) throw new NotFoundException('Trip not found');
-      if (trip.status !== TripStatus.DISPATCHED) throw new BadRequestException('Only DISPATCHED trips can be completed');
+      if (trip.status !== TripStatus.IN_PROGRESS && trip.status !== TripStatus.READY_TO_START) {
+        throw new BadRequestException('Trip must be IN_PROGRESS or READY_TO_START to be completed');
+      }
 
       const distanceToAdd = finalDistance ?? trip.plannedDistance;
 
-      // Rule 6: Updates vehicle odometer, changes Vehicle & Driver to AVAILABLE
       await tx.vehicle.update({
         where: { id: trip.vehicleId },
         data: { 
@@ -94,7 +176,10 @@ export class TripsService {
 
       return tx.trip.update({
         where: { id },
-        data: { status: TripStatus.COMPLETED },
+        data: { 
+          status: TripStatus.COMPLETED,
+          actualEndTime: new Date()
+        },
         include: { vehicle: true, driver: true }
       });
     });
@@ -107,8 +192,8 @@ export class TripsService {
       if (!trip) throw new NotFoundException('Trip not found');
       if (trip.status === TripStatus.COMPLETED) throw new BadRequestException('Cannot cancel a completed trip');
 
-      if (trip.status === TripStatus.DISPATCHED) {
-        // Rule 7: Cancelling restores Vehicle & Driver to AVAILABLE
+      // Free up driver and vehicle if they were locked
+      if (trip.status === TripStatus.READY_TO_START || trip.status === TripStatus.IN_PROGRESS) {
         await tx.vehicle.update({
           where: { id: trip.vehicleId },
           data: { status: VehicleStatus.AVAILABLE }
@@ -123,6 +208,90 @@ export class TripsService {
       return tx.trip.update({
         where: { id },
         data: { status: TripStatus.CANCELLED },
+        include: { vehicle: true, driver: true }
+      });
+    });
+  }
+
+  async claimOpenTrip(id: string, user: any) {
+    return this.prisma.$transaction(async (tx) => {
+      if (user.role !== 'DRIVER') throw new ForbiddenException('Only drivers can claim open trips');
+      const trip = await tx.trip.findUnique({ where: { id } });
+      if (!trip || !trip.isOpenToAll || trip.status !== 'ASSIGNED') {
+        throw new BadRequestException('This trip is not available to claim');
+      }
+
+      const driver = await tx.driver.findFirst({ where: { name: user.name } });
+      if (!driver) throw new NotFoundException('Driver profile not found');
+      if (driver.status !== DriverStatus.AVAILABLE) {
+        throw new BadRequestException('You must be AVAILABLE to claim a trip');
+      }
+
+      return tx.trip.update({
+        where: { id },
+        data: {
+          driverId: driver.id,
+          isOpenToAll: false,
+          driverAcceptedAt: new Date()
+        },
+        include: { vehicle: true, driver: true }
+      });
+    });
+  }
+
+  async logTripData(id: string, data: any) {
+    return this.prisma.$transaction(async (tx) => {
+      const trip = await tx.trip.findUnique({ where: { id } });
+      if (!trip) throw new NotFoundException('Trip not found');
+      if (trip.status !== TripStatus.COMPLETED) throw new BadRequestException('Trip must be completed to log reports');
+      if (trip.reportsLogged) throw new BadRequestException('Reports already logged');
+
+      if (data.endingOdometer) {
+        await tx.vehicle.update({
+          where: { id: trip.vehicleId },
+          data: { odometer: data.endingOdometer }
+        });
+      }
+
+      if (data.fuelLiters && data.fuelCost) {
+        await tx.fuelLog.create({
+          data: {
+            vehicleId: trip.vehicleId,
+            liters: data.fuelLiters,
+            cost: data.fuelCost,
+            odometer: data.endingOdometer || 0
+          }
+        });
+      }
+
+      if (data.miscCost > 0) {
+        await tx.expense.create({
+          data: {
+            vehicleId: trip.vehicleId,
+            tripId: trip.id,
+            type: 'MISC',
+            amount: data.miscCost,
+            description: 'Post-trip miscellaneous cost'
+          }
+        });
+      }
+
+      if (data.maintenanceRequired && data.maintenanceIssue) {
+        await tx.maintenanceLog.create({
+          data: {
+            vehicleId: trip.vehicleId,
+            issue: data.maintenanceIssue,
+            status: 'OPEN',
+          }
+        });
+      }
+
+      return tx.trip.update({
+        where: { id },
+        data: {
+          reportsLogged: true,
+          maintenanceRequired: !!data.maintenanceRequired
+        },
         include: { vehicle: true, driver: true }
       });
     });

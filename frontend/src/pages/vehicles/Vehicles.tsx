@@ -204,9 +204,10 @@ export default function Vehicles() {
                       <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
                         {canEdit && (
                           <button 
-                            onClick={() => handleOpenEdit(vehicle)}
-                            className="text-[#949ba4] hover:text-[#f2f3f5] transition-colors"
-                            title="Edit"
+                            onClick={() => { if (vehicle.status !== 'ON_TRIP') handleOpenEdit(vehicle); }}
+                            disabled={vehicle.status === 'ON_TRIP'}
+                            className={`${vehicle.status === 'ON_TRIP' ? 'text-[#4f545c] cursor-not-allowed' : 'text-[#949ba4] hover:text-[#f2f3f5] transition-colors'}`}
+                            title={vehicle.status === 'ON_TRIP' ? "Cannot edit while on trip" : "Edit"}
                           >
                             <Edit2 size={16} />
                           </button>

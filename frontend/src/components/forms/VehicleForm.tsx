@@ -49,7 +49,8 @@ export function VehicleForm({ initialData, onSubmit, isLoading }: VehicleFormPro
         <label className="block text-xs font-bold text-[#949ba4] uppercase tracking-wide mb-2">Registration Number</label>
         <input 
           {...register('registrationNumber')} 
-          className="w-full bg-[#1e1f22] text-[#f2f3f5] text-sm rounded-md px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-[#5865f2] border border-transparent focus:border-[#5865f2] transition-all" 
+          disabled={!!initialData}
+          className="w-full bg-[#1e1f22] text-[#f2f3f5] text-sm rounded-md px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-[#5865f2] border border-transparent focus:border-[#5865f2] transition-all disabled:opacity-50" 
           placeholder="e.g. CA-1001"
         />
         {errors.registrationNumber && <p className="text-[#f23f42] text-xs mt-1">{errors.registrationNumber.message}</p>}
@@ -60,7 +61,8 @@ export function VehicleForm({ initialData, onSubmit, isLoading }: VehicleFormPro
           <label className="block text-xs font-bold text-[#949ba4] uppercase tracking-wide mb-2">Model</label>
           <input 
             {...register('model')} 
-            className="w-full bg-[#1e1f22] text-[#f2f3f5] text-sm rounded-md px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-[#5865f2] border border-transparent focus:border-[#5865f2] transition-all" 
+            disabled={!!initialData}
+            className="w-full bg-[#1e1f22] text-[#f2f3f5] text-sm rounded-md px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-[#5865f2] border border-transparent focus:border-[#5865f2] transition-all disabled:opacity-50" 
             placeholder="e.g. Volvo FH16"
           />
           {errors.model && <p className="text-[#f23f42] text-xs mt-1">{errors.model.message}</p>}
@@ -69,7 +71,8 @@ export function VehicleForm({ initialData, onSubmit, isLoading }: VehicleFormPro
           <label className="block text-xs font-bold text-[#949ba4] uppercase tracking-wide mb-2">Type</label>
           <select 
             {...register('type')} 
-            className="w-full bg-[#1e1f22] text-[#f2f3f5] text-sm rounded-md px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-[#5865f2] border border-transparent focus:border-[#5865f2] transition-all"
+            disabled={!!initialData}
+            className="w-full bg-[#1e1f22] text-[#f2f3f5] text-sm rounded-md px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-[#5865f2] border border-transparent focus:border-[#5865f2] transition-all disabled:opacity-50"
           >
             <option value="">Select Type</option>
             <option value="Heavy Truck">Heavy Truck</option>
@@ -95,7 +98,8 @@ export function VehicleForm({ initialData, onSubmit, isLoading }: VehicleFormPro
           <input 
             type="number"
             {...register('odometer')} 
-            className="w-full bg-[#1e1f22] text-[#f2f3f5] text-sm rounded-md px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-[#5865f2] border border-transparent focus:border-[#5865f2] transition-all" 
+            disabled={!!initialData}
+            className="w-full bg-[#1e1f22] text-[#f2f3f5] text-sm rounded-md px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-[#5865f2] border border-transparent focus:border-[#5865f2] transition-all disabled:opacity-50" 
           />
           {errors.odometer && <p className="text-[#f23f42] text-xs mt-1">{errors.odometer.message}</p>}
         </div>
@@ -112,17 +116,10 @@ export function VehicleForm({ initialData, onSubmit, isLoading }: VehicleFormPro
           {errors.acquisitionCost && <p className="text-[#f23f42] text-xs mt-1">{errors.acquisitionCost.message}</p>}
         </div>
         <div>
-          <label className="block text-xs font-bold text-[#949ba4] uppercase tracking-wide mb-2">Status</label>
-          <select 
-            {...register('status')} 
-            className="w-full bg-[#1e1f22] text-[#f2f3f5] text-sm rounded-md px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-[#5865f2] border border-transparent focus:border-[#5865f2] transition-all"
-          >
-            <option value="AVAILABLE">AVAILABLE</option>
-            <option value="ON_TRIP">ON TRIP</option>
-            <option value="IN_SHOP">IN SHOP</option>
-            <option value="RETIRED">RETIRED</option>
-          </select>
-          {errors.status && <p className="text-[#f23f42] text-xs mt-1">{errors.status.message}</p>}
+          <label className="block text-xs font-bold text-[#949ba4] uppercase tracking-wide mb-2">Status (Live)</label>
+          <div className="w-full bg-[#1e1f22]/50 text-[#949ba4] text-sm rounded-md px-3 py-2.5 border border-[#313338] italic">
+            Managed by Operations Live Board
+          </div>
         </div>
       </div>
 

@@ -21,8 +21,8 @@ export class DashboardService {
       this.prisma.vehicle.count({ where: { status: VehicleStatus.AVAILABLE } }),
       this.prisma.vehicle.count({ where: { status: VehicleStatus.IN_SHOP } }),
       this.prisma.vehicle.count(),
-      this.prisma.trip.count({ where: { status: TripStatus.DISPATCHED } }),
-      this.prisma.trip.count({ where: { status: TripStatus.DRAFT } }),
+      this.prisma.trip.count({ where: { status: TripStatus.IN_PROGRESS } }),
+      this.prisma.trip.count({ where: { status: TripStatus.ASSIGNED } }),
       this.prisma.driver.count({ where: { status: DriverStatus.ON_TRIP } }),
       this.prisma.trip.findMany({
         take: 5,

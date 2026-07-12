@@ -6,6 +6,7 @@ import Dashboard from '@/pages/dashboard/Dashboard';
 import Vehicles from '@/pages/vehicles/Vehicles';
 import Drivers from '@/pages/drivers/Drivers';
 import Trips from '@/pages/trips/Trips';
+import Users from '@/pages/users/Users';
 import PlaceholderPage from '@/components/PlaceholderPage';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 
@@ -43,10 +44,10 @@ export const router = createBrowserRouter([
         path: 'trips',
         element: <Trips />,
       },
-      { path: 'users', element: <PlaceholderPage title="Users" description="Manage platform access and roles." /> },
-      { path: 'my-trips', element: <PlaceholderPage title="My Trips" description="View your assigned routes and history." /> },
+      { path: 'users', element: <Users /> },
+      { path: 'my-trips', element: <Trips /> },
       { path: 'maintenance', element: <Maintenance /> },
-      { path: 'maintenance-requests', element: <PlaceholderPage title="Maintenance Requests" description="Submit repair tickets for your vehicle." /> },
+      { path: 'maintenance-requests', element: <Maintenance /> },
       { path: 'fuel', element: <FuelExpenses /> },
       { path: 'analytics', element: <Analytics /> },
       { path: 'safety-reports', element: <PlaceholderPage title="Safety Reports" description="Review incident logs and driver safety." /> },

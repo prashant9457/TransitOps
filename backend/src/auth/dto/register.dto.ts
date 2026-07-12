@@ -18,4 +18,20 @@ export class RegisterDto {
   @IsEnum(Role)
   @IsOptional()
   role?: Role;
+
+  @IsString()
+  @IsOptional()
+  licenseNumber?: string;
+
+  @IsString()
+  @IsOptional()
+  licenseCategory?: string;
+
+  @IsString()
+  @IsOptional()
+  licenseExpiry?: string;
+
+  @IsString()
+  @IsOptional()
+  contactNumber?: string;
 }

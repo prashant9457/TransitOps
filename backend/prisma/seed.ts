@@ -68,7 +68,7 @@ async function bootstrap() {
           destination: 'Las Vegas, NV',
           cargoWeight: 15000,
           plannedDistance: 270,
-          status: TripStatus.DISPATCHED,
+          status: TripStatus.IN_PROGRESS,
         }
       });
     }

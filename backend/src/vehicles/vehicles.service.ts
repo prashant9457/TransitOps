@@ -55,7 +55,7 @@ export class VehiclesService {
     
     // Check if vehicle has active trips before deleting
     const activeTrips = await this.prisma.trip.count({
-      where: { vehicleId: id, status: { in: ['DRAFT', 'DISPATCHED'] } }
+      where: { vehicleId: id, status: { in: ['ASSIGNED', 'READY_TO_START', 'IN_PROGRESS'] } }
     });
 
     if (activeTrips > 0) {

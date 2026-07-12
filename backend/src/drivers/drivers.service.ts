@@ -62,7 +62,7 @@ export class DriversService {
     await this.findOne(id);
     
     const activeTrips = await this.prisma.trip.count({
-      where: { driverId: id, status: { in: ['DRAFT', 'DISPATCHED'] } }
+      where: { driverId: id, status: { in: ['ASSIGNED', 'READY_TO_START', 'IN_PROGRESS'] } }
     });
 
     if (activeTrips > 0) {

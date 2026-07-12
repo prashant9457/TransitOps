@@ -1,24 +1,33 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
+import type { Vehicle, Trip, FuelLog, Expense } from '@/types';
 
 export default function Analytics() {
-  const { data: vehicles } = useQuery({ queryKey: ['vehicles'], queryFn: async () => (await api.get('/vehicles')).data });
-  const { data: fuel } = useQuery({ queryKey: ['fuel'], queryFn: async () => (await api.get('/fuel')).data });
-  const { data: expenses } = useQuery({ queryKey: ['expenses'], queryFn: async () => (await api.get('/expenses')).data });
-  const { data: trips } = useQuery({ queryKey: ['trips'], queryFn: async () => (await api.get('/trips')).data });
+  const { data: vehicles, isLoading: vLoad, isError: vErr } = useQuery<Vehicle[]>({ queryKey: ['vehicles'], queryFn: async () => (await api.get('/vehicles')).data });
+  const { data: fuel, isLoading: fLoad, isError: fErr } = useQuery<FuelLog[]>({ queryKey: ['fuel'], queryFn: async () => (await api.get('/fuel')).data });
+  const { data: expenses, isLoading: eLoad, isError: eErr } = useQuery<Expense[]>({ queryKey: ['expenses'], queryFn: async () => (await api.get('/expenses')).data });
+  const { data: trips, isLoading: tLoad, isError: tErr } = useQuery<Trip[]>({ queryKey: ['trips'], queryFn: async () => (await api.get('/trips')).data });
 
-  const totalAcquisitionCost = vehicles?.reduce((acc: number, v: any) => acc + (v.acquisitionCost || 0), 0) || 0;
-  const totalFuelCost = fuel?.reduce((acc: number, f: any) => acc + (f.cost || 0), 0) || 0;
-  const totalExpensesCost = expenses?.reduce((acc: number, e: any) => acc + (e.amount || 0), 0) || 0;
+  if (vLoad || fLoad || eLoad || tLoad) {
+    return <div className="p-6 text-[#949ba4] text-sm">Loading analytics data...</div>;
+  }
+
+  if (vErr || fErr || eErr || tErr) {
+    return <div className="p-6 text-[#f23f42] text-sm">Error loading data. Please try again.</div>;
+  }
+
+  const totalAcquisitionCost = vehicles?.reduce((acc: number, v: Vehicle) => acc + (v.acquisitionCost || 0), 0) || 0;
+  const totalFuelCost = fuel?.reduce((acc: number, f: FuelLog) => acc + (f.cost || 0), 0) || 0;
+  const totalExpensesCost = expenses?.reduce((acc: number, e: Expense) => acc + (e.amount || 0), 0) || 0;
   const operationalCost = totalFuelCost + totalExpensesCost;
   
   // Mock Revenue based on completed trips ($500 per trip)
-  const completedTripsCount = trips?.filter((t: any) => t.status === 'COMPLETED').length || 0;
+  const completedTripsCount = trips?.filter((t: Trip) => t.status === 'COMPLETED').length || 0;
   const simulatedRevenue = completedTripsCount * 5000;
   
   const roi = totalAcquisitionCost > 0 ? ((simulatedRevenue - operationalCost) / totalAcquisitionCost) * 100 : 0;
-  const fleetUtilization = vehicles?.length ? (vehicles.filter((v: any) => v.status === 'ON_TRIP').length / vehicles.length) * 100 : 0;
+  const fleetUtilization = vehicles?.length ? (vehicles.filter((v: Vehicle) => v.status === 'ON_TRIP').length / vehicles.length) * 100 : 0;
 
   return (
     <div className="flex flex-col h-full bg-[#1e1f22] text-[#f2f3f5] p-6 gap-6">
@@ -90,7 +99,7 @@ export default function Analytics() {
         <div>
           <h2 className="text-sm font-bold text-[#949ba4] uppercase tracking-wider mb-6">ACQUISITION COSTS</h2>
           <div className="space-y-6">
-            {vehicles?.slice(0, 4).map((v: any, index: number) => (
+            {vehicles?.slice(0, 4).map((v: Vehicle, index: number) => (
               <div key={v.id} className="flex items-center gap-4">
                 <div className="w-24 text-sm text-[#dbdee1] font-mono">{v.registrationNumber}</div>
                 <div className="flex-1 h-4 bg-[#1e1f22] rounded-r-sm overflow-hidden border border-[#313338]">

@@ -14,26 +14,55 @@ export class AuthService {
   ) {}
 
   async register(registerDto: RegisterDto) {
-    const existingUser = await this.prisma.user.findUnique({
-      where: { email: registerDto.email },
+    return this.prisma.$transaction(async (tx) => {
+      const existingUser = await tx.user.findUnique({
+        where: { email: registerDto.email },
+      });
+
+      if (existingUser) {
+        throw new ConflictException('Email is already registered');
+      }
+
+      const hashedPassword = await bcrypt.hash(registerDto.password, 10);
+      const role = registerDto.role || Role.DRIVER;
+
+      if (role === Role.DRIVER) {
+        if (!registerDto.licenseNumber || !registerDto.licenseCategory || !registerDto.licenseExpiry || !registerDto.contactNumber) {
+          throw new ConflictException('Driver details (license, category, expiry, contact) are required for driver registration');
+        }
+        
+        // check if driver license already exists
+        const existingDriver = await tx.driver.findUnique({
+          where: { licenseNumber: registerDto.licenseNumber }
+        });
+        if (existingDriver) {
+          throw new ConflictException('License number is already registered');
+        }
+
+        await tx.driver.create({
+          data: {
+            name: registerDto.name,
+            licenseNumber: registerDto.licenseNumber,
+            licenseCategory: registerDto.licenseCategory,
+            licenseExpiry: new Date(registerDto.licenseExpiry),
+            contactNumber: registerDto.contactNumber,
+            status: 'AVAILABLE',
+            safetyScore: 100,
+          }
+        });
+      }
+
+      const user = await tx.user.create({
+        data: {
+          name: registerDto.name,
+          email: registerDto.email,
+          password: hashedPassword,
+          role,
+        },
+      });
+
+      return this.generateToken(user);
     });
-
-    if (existingUser) {
-      throw new ConflictException('Email is already registered');
-    }
-
-    const hashedPassword = await bcrypt.hash(registerDto.password, 10);
-
-    const user = await this.prisma.user.create({
-      data: {
-        name: registerDto.name,
-        email: registerDto.email,
-        password: hashedPassword,
-        role: registerDto.role || Role.DRIVER,
-      },
-    });
-
-    return this.generateToken(user);
   }
 
   async login(loginDto: LoginDto) {

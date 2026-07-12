@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
 import { Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
+import type { Vehicle, Trip, FuelLog, Expense } from '@/types';
 
 export default function FuelExpenses() {
   const queryClient = useQueryClient();
@@ -19,41 +20,53 @@ export default function FuelExpenses() {
   const [expenseDesc, setExpenseDesc] = useState('');
   const [tripId, setTripId] = useState('');
 
-  const { data: vehicles } = useQuery({ queryKey: ['vehicles'], queryFn: async () => (await api.get('/vehicles')).data });
-  const { data: trips } = useQuery({ queryKey: ['trips'], queryFn: async () => (await api.get('/trips')).data });
-  const { data: fuelLogs, isLoading: loadingFuel } = useQuery({ queryKey: ['fuel'], queryFn: async () => (await api.get('/fuel')).data });
-  const { data: expenses, isLoading: loadingExp } = useQuery({ queryKey: ['expenses'], queryFn: async () => (await api.get('/expenses')).data });
+  const { data: vehicles, isLoading: loadingVehicles, isError: errVehicles } = useQuery<Vehicle[]>({ queryKey: ['vehicles'], queryFn: async () => (await api.get('/vehicles')).data });
+  const { data: trips, isLoading: loadingTrips, isError: errTrips } = useQuery<Trip[]>({ queryKey: ['trips'], queryFn: async () => (await api.get('/trips')).data });
+  const { data: fuelLogs, isLoading: loadingFuel, isError: errFuel } = useQuery<FuelLog[]>({ queryKey: ['fuel'], queryFn: async () => (await api.get('/fuel')).data });
+  const { data: expenses, isLoading: loadingExp, isError: errExp } = useQuery<Expense[]>({ queryKey: ['expenses'], queryFn: async () => (await api.get('/expenses')).data });
 
   const fuelMutation = useMutation({
-    mutationFn: (data: any) => api.post('/fuel', data),
+    mutationFn: (data: { vehicleId: string, liters: number, cost: number, odometer: number }) => api.post('/fuel', data),
     onSuccess: () => {
       toast.success('Fuel logged');
       queryClient.invalidateQueries({ queryKey: ['fuel'] });
       setShowFuelForm(false);
-    }
+      setVehicleId(''); setLiters(''); setCost(''); setOdometer('');
+    },
+    onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to log fuel')
   });
 
   const expenseMutation = useMutation({
-    mutationFn: (data: any) => api.post('/expenses', data),
+    mutationFn: (data: { vehicleId: string, tripId?: string, type: string, amount: number, description: string }) => api.post('/expenses', data),
     onSuccess: () => {
       toast.success('Expense added');
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
       setShowExpenseForm(false);
-    }
+      setVehicleId(''); setTripId(''); setExpenseType('TOLL'); setExpenseAmount(''); setExpenseDesc('');
+    },
+    onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to add expense')
   });
 
   const handleLogFuel = () => {
     if (!vehicleId || !liters || !cost) return toast.error('Fill required fields');
-    fuelMutation.mutate({ vehicleId, liters, cost, odometer });
+    fuelMutation.mutate({ vehicleId, liters: Number(liters), cost: Number(cost), odometer: Number(odometer) || 0 });
   };
 
   const handleAddExpense = () => {
     if (!vehicleId || !expenseAmount || !expenseType) return toast.error('Fill required fields');
-    expenseMutation.mutate({ vehicleId, tripId, type: expenseType, amount: expenseAmount, description: expenseDesc });
+    expenseMutation.mutate({ vehicleId, tripId: tripId || undefined, type: expenseType, amount: Number(expenseAmount), description: expenseDesc });
   };
 
-  const totalFuelCost = fuelLogs?.reduce((acc: number, f: any) => acc + (f.cost || 0), 0) || 0;
-  const totalExpenseCost = expenses?.reduce((acc: number, e: any) => acc + (e.amount || 0), 0) || 0;
+  if (loadingVehicles || loadingTrips || loadingFuel || loadingExp) {
+    return <div className="p-6 text-[#949ba4] text-sm">Loading fuel & expenses data...</div>;
+  }
+
+  if (errVehicles || errTrips || errFuel || errExp) {
+    return <div className="p-6 text-[#f23f42] text-sm">Error loading data. Please try again.</div>;
+  }
+
+  const totalFuelCost = fuelLogs?.reduce((acc: number, f: FuelLog) => acc + (f.cost || 0), 0) || 0;
+  const totalExpenseCost = expenses?.reduce((acc: number, e: Expense) => acc + (e.amount || 0), 0) || 0;
   const totalCost = totalFuelCost + totalExpenseCost;
 
   return (
@@ -72,7 +85,7 @@ export default function FuelExpenses() {
         <div className="bg-[#2b2d31] p-4 rounded-md border border-[#313338] flex gap-4 items-end">
           <div className="flex-1"><label className="block text-xs mb-1 text-[#949ba4]">Vehicle</label>
             <select value={vehicleId} onChange={e=>setVehicleId(e.target.value)} className="w-full bg-[#1e1f22] text-sm px-2 py-1.5 rounded-md border border-[#313338] text-white">
-              <option value="">Select Vehicle</option>{vehicles?.map((v:any) => <option key={v.id} value={v.id}>{v.registrationNumber}</option>)}
+              <option value="">Select Vehicle</option>{vehicles?.map((v: Vehicle) => <option key={v.id} value={v.id}>{v.registrationNumber}</option>)}
             </select>
           </div>
           <div className="flex-1"><label className="block text-xs mb-1 text-[#949ba4]">Liters</label>
@@ -81,7 +94,7 @@ export default function FuelExpenses() {
           <div className="flex-1"><label className="block text-xs mb-1 text-[#949ba4]">Cost</label>
             <input type="number" value={cost} onChange={e=>setCost(e.target.value)} className="w-full bg-[#1e1f22] text-sm px-2 py-1.5 rounded-md border border-[#313338] text-white"/>
           </div>
-          <button onClick={handleLogFuel} disabled={fuelMutation.isPending} className="bg-[#5865f2] px-4 py-1.5 rounded-md text-sm">Save</button>
+          <button onClick={handleLogFuel} disabled={fuelMutation.isPending} className="bg-[#5865f2] hover:bg-[#4752c4] disabled:opacity-50 transition-colors px-4 py-1.5 rounded-md text-sm">Save</button>
         </div>
       )}
 
@@ -94,12 +107,12 @@ export default function FuelExpenses() {
           </div>
           <div className="w-40"><label className="block text-xs mb-1 text-[#949ba4]">Vehicle</label>
             <select value={vehicleId} onChange={e=>setVehicleId(e.target.value)} className="w-full bg-[#1e1f22] text-sm px-2 py-1.5 rounded-md border border-[#313338] text-white">
-              <option value="">Select Vehicle</option>{vehicles?.map((v:any) => <option key={v.id} value={v.id}>{v.registrationNumber}</option>)}
+              <option value="">Select Vehicle</option>{vehicles?.map((v: Vehicle) => <option key={v.id} value={v.id}>{v.registrationNumber}</option>)}
             </select>
           </div>
           <div className="w-40"><label className="block text-xs mb-1 text-[#949ba4]">Trip (Optional)</label>
             <select value={tripId} onChange={e=>setTripId(e.target.value)} className="w-full bg-[#1e1f22] text-sm px-2 py-1.5 rounded-md border border-[#313338] text-white">
-              <option value="">None</option>{trips?.map((t:any) => <option key={t.id} value={t.id}>{t.source.substring(0,5)}... to {t.destination.substring(0,5)}...</option>)}
+              <option value="">None</option>{trips?.map((t: Trip) => <option key={t.id} value={t.id}>{t.source.substring(0,5)}... to {t.destination.substring(0,5)}...</option>)}
             </select>
           </div>
           <div className="w-24"><label className="block text-xs mb-1 text-[#949ba4]">Amount</label>
@@ -108,7 +121,7 @@ export default function FuelExpenses() {
           <div className="flex-1"><label className="block text-xs mb-1 text-[#949ba4]">Description</label>
             <input type="text" value={expenseDesc} onChange={e=>setExpenseDesc(e.target.value)} className="w-full bg-[#1e1f22] text-sm px-2 py-1.5 rounded-md border border-[#313338] text-white"/>
           </div>
-          <button onClick={handleAddExpense} disabled={expenseMutation.isPending} className="bg-[#5865f2] px-4 py-1.5 rounded-md text-sm">Save</button>
+          <button onClick={handleAddExpense} disabled={expenseMutation.isPending} className="bg-[#5865f2] hover:bg-[#4752c4] disabled:opacity-50 transition-colors px-4 py-1.5 rounded-md text-sm">Save</button>
         </div>
       )}
 
@@ -127,14 +140,18 @@ export default function FuelExpenses() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#313338] text-sm text-[#dbdee1]">
-                {loadingFuel ? <tr><td colSpan={4} className="py-4 text-[#949ba4]">Loading...</td></tr> : fuelLogs?.map((fuel: any) => (
-                  <tr key={fuel.id} className="hover:bg-[#2b2d31]/40 transition-colors">
-                    <td className="py-4 pr-4 font-mono">{fuel.vehicle?.registrationNumber || 'N/A'}</td>
-                    <td className="py-4 px-4 text-center">{new Date(fuel.createdAt).toLocaleDateString()}</td>
-                    <td className="py-4 px-4 text-center">{fuel.liters} L</td>
-                    <td className="py-4 pl-4 text-right">{fuel.cost.toLocaleString()}</td>
-                  </tr>
-                ))}
+                {fuelLogs?.length === 0 ? (
+                  <tr><td colSpan={4} className="py-4 text-[#949ba4]">No records found.</td></tr>
+                ) : (
+                  fuelLogs?.map((fuel: FuelLog) => (
+                    <tr key={fuel.id} className="hover:bg-[#2b2d31]/40 transition-colors">
+                      <td className="py-4 pr-4 font-mono">{fuel.vehicle?.registrationNumber || 'N/A'}</td>
+                      <td className="py-4 px-4 text-center">{new Date(fuel.createdAt!).toLocaleDateString()}</td>
+                      <td className="py-4 px-4 text-center">{fuel.liters} L</td>
+                      <td className="py-4 pl-4 text-right">{fuel.cost.toLocaleString()}</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -155,19 +172,23 @@ export default function FuelExpenses() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#313338] text-sm text-[#dbdee1]">
-                {loadingExp ? <tr><td colSpan={5} className="py-4 text-[#949ba4]">Loading...</td></tr> : expenses?.map((expense: any) => (
-                  <tr key={expense.id} className="hover:bg-[#2b2d31]/40 transition-colors">
-                    <td className="py-4 pr-4 font-mono">{expense.tripId ? expense.tripId.substring(0,8).toUpperCase() : '—'}</td>
-                    <td className="py-4 px-4 font-mono">{expense.vehicle?.registrationNumber || 'N/A'}</td>
-                    <td className="py-4 px-4 text-center">{expense.type}</td>
-                    <td className="py-4 px-4 text-center">{expense.description || '—'}</td>
-                    <td className="py-4 pl-4 text-right flex justify-end">
-                      <span className="inline-block px-3 py-1.5 rounded-md text-xs font-medium text-white bg-[#5865f2]">
-                        {expense.amount.toLocaleString()}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {expenses?.length === 0 ? (
+                  <tr><td colSpan={5} className="py-4 text-[#949ba4]">No records found.</td></tr>
+                ) : (
+                  expenses?.map((expense: Expense) => (
+                    <tr key={expense.id} className="hover:bg-[#2b2d31]/40 transition-colors">
+                      <td className="py-4 pr-4 font-mono">{expense.tripId ? expense.tripId.substring(0,8).toUpperCase() : '—'}</td>
+                      <td className="py-4 px-4 font-mono">{expense.vehicle?.registrationNumber || 'N/A'}</td>
+                      <td className="py-4 px-4 text-center">{expense.type}</td>
+                      <td className="py-4 px-4 text-center">{expense.description || '—'}</td>
+                      <td className="py-4 pl-4 text-right flex justify-end">
+                        <span className="inline-block px-3 py-1.5 rounded-md text-xs font-medium text-white bg-[#5865f2]">
+                          {expense.amount.toLocaleString()}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

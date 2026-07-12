@@ -1,4 +1,7 @@
+// LEGACY - UNUSED - Real dashboard is in pages/dashboard/Dashboard.tsx
 import { Truck, UserCog, Route as RouteIcon, Wrench, AlertTriangle } from "lucide-react";
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../services/api';
 import "./Dashboard.css";
 
 const STATS = [

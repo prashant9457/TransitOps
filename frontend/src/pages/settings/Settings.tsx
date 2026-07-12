@@ -4,6 +4,7 @@ import { api } from '@/lib/axios';
 import { Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import type { Settings as SettingsType } from '@/types';
 
 export default function Settings() {
   const { role } = useAuth();
@@ -12,7 +13,7 @@ export default function Settings() {
   const [currency, setCurrency] = useState('INR (Rs)');
   const [distanceUnit, setDistanceUnit] = useState('Kilometers');
 
-  const { data: settings } = useQuery({
+  const { data: settings, isLoading, isError } = useQuery<SettingsType>({
     queryKey: ['settings'],
     queryFn: async () => {
       const { data } = await api.get('/settings');
@@ -29,7 +30,7 @@ export default function Settings() {
   }, [settings]);
 
   const updateMutation = useMutation({
-    mutationFn: (data: any) => api.patch('/settings', data),
+    mutationFn: (data: { depotName: string, currency: string, distanceUnit: string }) => api.patch('/settings', data),
     onSuccess: () => {
       toast.success('Settings updated successfully');
       queryClient.invalidateQueries({ queryKey: ['settings'] });
@@ -44,6 +45,14 @@ export default function Settings() {
     }
     updateMutation.mutate({ depotName, currency, distanceUnit });
   };
+
+  if (isLoading) {
+    return <div className="p-6 text-[#949ba4] text-sm">Loading settings...</div>;
+  }
+
+  if (isError) {
+    return <div className="p-6 text-[#f23f42] text-sm">Error loading settings. Please try again.</div>;
+  }
 
   return (
     <div className="flex flex-col h-full bg-[#1e1f22] text-[#f2f3f5] p-6 gap-8 overflow-y-auto custom-scrollbar">
@@ -89,7 +98,7 @@ export default function Settings() {
               disabled={updateMutation.isPending || role !== 'ADMIN'}
               className="bg-[#5865f2] hover:bg-[#4752c4] disabled:opacity-50 text-white px-6 py-2.5 rounded-md text-sm font-medium transition-colors"
             >
-              Save changes
+              {updateMutation.isPending ? 'Saving...' : 'Save changes'}
             </button>
             {role !== 'ADMIN' && <div className="text-xs text-[#f23f42] mt-2">Only Admins can change global settings.</div>}
           </div>

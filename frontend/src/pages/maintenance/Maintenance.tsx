@@ -2,15 +2,19 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
 import toast from 'react-hot-toast';
+import type { Vehicle, MaintenanceLog } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Maintenance() {
+  const { role } = useAuth();
+  const isDriver = role === 'DRIVER';
   const queryClient = useQueryClient();
   const [vehicleId, setVehicleId] = useState('');
   const [issue, setIssue] = useState('');
   const [cost, setCost] = useState('');
-  const [status, setStatus] = useState('OPEN');
+  const [status, setStatus] = useState<'OPEN' | 'IN_PROGRESS' | 'COMPLETED'>('OPEN');
 
-  const { data: vehicles } = useQuery({
+  const { data: vehicles, isLoading: vehiclesLoading, isError: vehiclesError } = useQuery<Vehicle[]>({
     queryKey: ['vehicles'],
     queryFn: async () => {
       const { data } = await api.get('/vehicles');
@@ -18,7 +22,7 @@ export default function Maintenance() {
     },
   });
 
-  const { data: logs, isLoading } = useQuery({
+  const { data: logs, isLoading: logsLoading, isError: logsError } = useQuery<MaintenanceLog[]>({
     queryKey: ['maintenance'],
     queryFn: async () => {
       const { data } = await api.get('/maintenance');
@@ -27,7 +31,7 @@ export default function Maintenance() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: any) => api.post('/maintenance', data),
+    mutationFn: (data: { vehicleId: string, issue: string, cost: number, status: string }) => api.post('/maintenance', data),
     onSuccess: () => {
       toast.success('Maintenance log created');
       queryClient.invalidateQueries({ queryKey: ['maintenance'] });
@@ -42,8 +46,16 @@ export default function Maintenance() {
 
   const handleSubmit = () => {
     if (!vehicleId || !issue) return toast.error('Please fill required fields');
-    createMutation.mutate({ vehicleId, issue, cost, status });
+    createMutation.mutate({ vehicleId, issue, cost: Number(cost), status });
   };
+
+  if (vehiclesLoading || logsLoading) {
+    return <div className="p-6 text-[#949ba4] text-sm">Loading maintenance data...</div>;
+  }
+
+  if (vehiclesError || logsError) {
+    return <div className="p-6 text-[#f23f42] text-sm">Error loading data. Please try again.</div>;
+  }
 
   return (
     <div className="flex flex-col lg:flex-row h-full bg-[#1e1f22] text-[#f2f3f5] p-6 gap-12 overflow-y-auto custom-scrollbar">
@@ -53,7 +65,7 @@ export default function Maintenance() {
         
         {/* Form */}
         <div className="flex flex-col gap-4">
-          <h2 className="text-[10px] font-bold text-[#949ba4] uppercase tracking-wider">LOG SERVICE RECORD</h2>
+          <h2 className="text-[10px] font-bold text-[#949ba4] uppercase tracking-wider">{isDriver ? 'SUBMIT MAINTENANCE REQUEST' : 'LOG SERVICE RECORD'}</h2>
           
           <div className="flex flex-col gap-1.5">
             <label className="text-[10px] font-bold text-[#949ba4] uppercase tracking-wider">VEHICLE</label>
@@ -62,7 +74,7 @@ export default function Maintenance() {
               className="w-full bg-[#1e1f22] text-[#dbdee1] text-sm border border-[#313338] rounded-md px-3 py-2 focus:outline-none focus:border-[#d97706] transition-colors"
             >
               <option value="">Select Vehicle</option>
-              {vehicles?.map((v: any) => (
+              {vehicles?.map((v: Vehicle) => (
                 <option key={v.id} value={v.id}>{v.registrationNumber} - {v.model}</option>
               ))}
             </select>
@@ -78,25 +90,28 @@ export default function Maintenance() {
             />
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold text-[#949ba4] uppercase tracking-wider">COST</label>
-            <input 
-              type="number" 
-              value={cost} onChange={e => setCost(e.target.value)}
-              placeholder="0"
-              className="w-full bg-[#1e1f22] text-[#dbdee1] text-sm border border-[#313338] rounded-md px-3 py-2 focus:outline-none focus:border-[#d97706] transition-colors"
-            />
-          </div>
+          {!isDriver && (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] font-bold text-[#949ba4] uppercase tracking-wider">COST</label>
+              <input 
+                type="number" 
+                value={cost} onChange={e => setCost(e.target.value)}
+                placeholder="0"
+                className="w-full bg-[#1e1f22] text-[#dbdee1] text-sm border border-[#313338] rounded-md px-3 py-2 focus:outline-none focus:border-[#d97706] transition-colors"
+              />
+            </div>
+          )}
 
           <div className="flex flex-col gap-1.5">
             <label className="text-[10px] font-bold text-[#949ba4] uppercase tracking-wider">STATUS</label>
             <select 
-              value={status} onChange={e => setStatus(e.target.value)}
-              className="w-full bg-[#1e1f22] text-[#dbdee1] text-sm border border-[#313338] rounded-md px-3 py-2 focus:outline-none focus:border-[#d97706] transition-colors"
+              value={status} onChange={e => setStatus(e.target.value as any)}
+              disabled={isDriver}
+              className={`w-full bg-[#1e1f22] text-[#dbdee1] text-sm border border-[#313338] rounded-md px-3 py-2 focus:outline-none focus:border-[#d97706] transition-colors ${isDriver ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              <option value="OPEN">Open</option>
-              <option value="IN_PROGRESS">In Progress (To Shop)</option>
-              <option value="COMPLETED">Completed (Available)</option>
+              <option value="OPEN">Open (Requested)</option>
+              {!isDriver && <option value="IN_PROGRESS">In Progress (To Shop)</option>}
+              {!isDriver && <option value="COMPLETED">Completed (Available)</option>}
             </select>
           </div>
 
@@ -130,7 +145,7 @@ export default function Maintenance() {
 
       {/* Right Column: Service Log */}
       <div className="flex-1 flex flex-col gap-4">
-        <h2 className="text-[10px] font-bold text-[#949ba4] uppercase tracking-wider">SERVICE LOG</h2>
+        <h2 className="text-[10px] font-bold text-[#949ba4] uppercase tracking-wider">{isDriver ? 'MY VEHICLE REQUESTS' : 'SERVICE LOG'}</h2>
         
         <div className="w-full overflow-x-auto">
           <table className="w-full text-left">
@@ -143,12 +158,10 @@ export default function Maintenance() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#313338] text-sm text-[#dbdee1]">
-              {isLoading ? (
-                <tr><td colSpan={4} className="py-4 text-[#949ba4]">Loading...</td></tr>
-              ) : logs?.length === 0 ? (
+              {logs?.length === 0 ? (
                 <tr><td colSpan={4} className="py-4 text-[#949ba4]">No records found.</td></tr>
               ) : (
-                logs?.map((log: any) => (
+                logs?.map((log: MaintenanceLog) => (
                   <tr key={log.id} className="hover:bg-[#2b2d31]/40 transition-colors">
                     <td className="py-4 pr-4 font-mono">{log.vehicle?.registrationNumber || 'N/A'}</td>
                     <td className="py-4 px-4">{log.issue}</td>

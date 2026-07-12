@@ -61,6 +61,11 @@
   margin-bottom: 24px;
 }
 
+/* LEGACY - UNUSED - Real dashboard is in pages/dashboard/Dashboard.css */
+.dashboard-container {
+  margin-bottom: 12px;
+}
+
 .ts-card-header {
   margin-bottom: 12px;
 }
