@@ -10,6 +10,7 @@ import { MaintenanceModule } from './maintenance/maintenance.module';
 import { FuelModule } from './fuel/fuel.module';
 import { ExpensesModule } from './expenses/expenses.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { SettingsModule } from './settings/settings.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
@@ -23,7 +24,8 @@ import { PrismaModule } from './prisma/prisma.module';
     MaintenanceModule, 
     FuelModule, 
     ExpensesModule, 
-    DashboardModule
+    DashboardModule,
+    SettingsModule
   ],
   controllers: [AppController],
   providers: [AppService],

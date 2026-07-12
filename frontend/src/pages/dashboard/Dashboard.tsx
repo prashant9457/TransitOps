@@ -1,65 +1,180 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-
-const data = [
-  { name: 'Mon', trips: 40 },
-  { name: 'Tue', trips: 30 },
-  { name: 'Wed', trips: 20 },
-  { name: 'Thu', trips: 27 },
-  { name: 'Fri', trips: 18 },
-  { name: 'Sat', trips: 23 },
-  { name: 'Sun', trips: 34 },
-];
+import { useQuery } from '@tanstack/react-query';
+import { api } from '@/lib/axios';
 
 export default function Dashboard() {
+  const { data, isLoading } = useQuery({
+    queryKey: ['dashboard-metrics'],
+    queryFn: async () => {
+      const res = await api.get('/dashboard/metrics');
+      return res.data;
+    },
+  });
+
+  const m = data?.metrics;
+  const recentTrips = data?.recentTrips || [];
+
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <div className="text-gray-500 text-sm font-medium">Active Vehicles</div>
-          <div className="text-3xl font-bold mt-2 text-gray-800">24</div>
-        </div>
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <div className="text-gray-500 text-sm font-medium">Drivers On Duty</div>
-          <div className="text-3xl font-bold mt-2 text-gray-800">18</div>
-        </div>
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <div className="text-gray-500 text-sm font-medium">Vehicles In Shop</div>
-          <div className="text-3xl font-bold mt-2 text-gray-800">3</div>
-        </div>
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <div className="text-gray-500 text-sm font-medium">Active Trips</div>
-          <div className="text-3xl font-bold mt-2 text-gray-800">12</div>
+    <div className="flex flex-col gap-6 text-[#f2f3f5] min-h-full">
+      {/* Filters Section */}
+      <div>
+        <div className="text-xs font-bold text-[#949ba4] uppercase tracking-wider mb-3">Filters</div>
+        <div className="flex flex-wrap gap-4">
+          <select className="bg-[#1e1f22] text-[#dbdee1] border border-[#313338] rounded-md px-4 py-2 focus:outline-none focus:border-[#5865f2] w-48 text-sm">
+            <option>Vehicle Type: All</option>
+          </select>
+          <select className="bg-[#1e1f22] text-[#dbdee1] border border-[#313338] rounded-md px-4 py-2 focus:outline-none focus:border-[#5865f2] w-48 text-sm">
+            <option>Status: All</option>
+          </select>
+          <select className="bg-[#1e1f22] text-[#dbdee1] border border-[#313338] rounded-md px-4 py-2 focus:outline-none focus:border-[#5865f2] w-48 text-sm">
+            <option>Region: All</option>
+          </select>
         </div>
       </div>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-96">
-          <h3 className="font-semibold text-lg mb-6 text-gray-800">Trips This Week</h3>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="name" axisLine={false} tickLine={false} />
-              <YAxis axisLine={false} tickLine={false} />
-              <Tooltip cursor={{ fill: '#f3f4f6' }} />
-              <Bar dataKey="trips" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+
+      {/* Metrics Row */}
+      <div className="flex flex-wrap gap-4 mt-2">
+        <MetricCard title="ACTIVE VEHICLES" value={isLoading ? '...' : m?.activeVehicles} barColor="bg-[#5865f2]" />
+        <MetricCard title="AVAILABLE VEHICLES" value={isLoading ? '...' : m?.availableVehicles} barColor="bg-[#23a559]" />
+        <MetricCard title="VEHICLES IN MAINTENANCE" value={isLoading ? '...' : m?.vehiclesInShop} barColor="bg-[#f0b232]" />
+        <MetricCard title="ACTIVE TRIPS" value={isLoading ? '...' : m?.activeTrips} barColor="bg-[#5865f2]" />
+        <MetricCard title="PENDING TRIPS" value={isLoading ? '...' : m?.pendingTrips} barColor="bg-[#5865f2]/50" />
+        <MetricCard title="DRIVERS ON DUTY" value={isLoading ? '...' : m?.driversOnDuty} />
+        <MetricCard title="FLEET UTILIZATION" value={isLoading ? '...' : `${m?.fleetUtilization}%`} barColor="bg-[#23a559]" />
+      </div>
+
+      {/* Bottom Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-4 flex-1">
         
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <h3 className="font-semibold text-lg mb-4 text-gray-800">Recent Alerts</h3>
-          <div className="space-y-4">
-            <div className="p-4 bg-red-50 text-red-700 rounded-lg border border-red-100">
-              <span className="font-semibold">Maintenance Required:</span> Vehicle V-1024 due for oil change.
-            </div>
-            <div className="p-4 bg-yellow-50 text-yellow-700 rounded-lg border border-yellow-100">
-              <span className="font-semibold">Delay Warning:</span> Trip T-892 delayed by 45 minutes due to traffic.
-            </div>
-            <div className="p-4 bg-blue-50 text-blue-700 rounded-lg border border-blue-100">
-              <span className="font-semibold">Driver Alert:</span> Driver John Doe logged 10 hours today.
-            </div>
+        {/* Recent Trips */}
+        <div className="lg:col-span-2 flex flex-col">
+          <h2 className="text-sm font-bold text-[#949ba4] uppercase tracking-wider mb-4">Recent Trips</h2>
+          <div className="bg-[#1e1f22] rounded-lg border border-[#313338] overflow-hidden flex-1">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-[#313338] text-xs font-semibold text-[#949ba4] uppercase tracking-wider">
+                  <th className="px-5 py-4 font-medium">Trip</th>
+                  <th className="px-5 py-4 font-medium">Vehicle</th>
+                  <th className="px-5 py-4 font-medium">Driver</th>
+                  <th className="px-5 py-4 font-medium">Status</th>
+                  <th className="px-5 py-4 font-medium text-right">ETA</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#313338] text-sm text-[#dbdee1]">
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={5} className="px-5 py-8 text-center text-[#949ba4]">Loading trips...</td>
+                  </tr>
+                ) : recentTrips.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-5 py-8 text-center text-[#949ba4]">No recent trips.</td>
+                  </tr>
+                ) : (
+                  recentTrips.map((trip: any) => (
+                    <tr key={trip.id} className="hover:bg-[#2b2d31]/50 transition-colors">
+                      <td className="px-5 py-4 font-mono text-xs">{trip.id.substring(0,8).toUpperCase()}</td>
+                      <td className="px-5 py-4">{trip.vehicle.registrationNumber}</td>
+                      <td className="px-5 py-4">{trip.driver.name}</td>
+                      <td className="px-5 py-4">
+                        <StatusBadge status={trip.status} />
+                      </td>
+                      <td className="px-5 py-4 text-right text-[#949ba4]">
+                        {trip.status === 'DRAFT' ? 'Awaiting vehicle' : trip.status === 'COMPLETED' ? '—' : 'Calculated'}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
+
+        {/* Vehicle Status */}
+        <div className="flex flex-col">
+          <h2 className="text-sm font-bold text-[#949ba4] uppercase tracking-wider mb-4">Vehicle Status</h2>
+          <div className="space-y-5 mt-2">
+            <StatusBar 
+              label="Available" 
+              count={m?.availableVehicles} 
+              total={m?.totalVehicles} 
+              color="bg-[#23a559]" 
+            />
+            <StatusBar 
+              label="On Trip" 
+              count={m?.activeVehicles} 
+              total={m?.totalVehicles} 
+              color="bg-[#5865f2]" 
+            />
+            <StatusBar 
+              label="In Shop" 
+              count={m?.vehiclesInShop} 
+              total={m?.totalVehicles} 
+              color="bg-[#f0b232]" 
+            />
+            <StatusBar 
+              label="Retired" 
+              count={m?.retiredVehicles} 
+              total={m?.totalVehicles} 
+              color="bg-[#f23f42]" 
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MetricCard({ title, value, barColor }: { title: string; value: any; barColor?: string }) {
+  return (
+    <div className="bg-[#1e1f22] border border-[#313338] rounded-md p-5 flex flex-col justify-between min-w-[160px] flex-1 relative overflow-hidden">
+      {barColor && (
+        <div className={`absolute left-0 top-0 bottom-0 w-1 ${barColor}`}></div>
+      )}
+      <div className={`text-[10px] font-bold text-[#949ba4] uppercase tracking-wider mb-3 ${barColor ? 'ml-2' : ''}`}>
+        {title}
+      </div>
+      <div className={`text-3xl font-light text-[#f2f3f5] ${barColor ? 'ml-2' : ''}`}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  let bgColor = 'bg-[#4f545c] text-[#f2f3f5]'; // DRAFT / Default (Gray)
+  let label = status;
+
+  if (status === 'DISPATCHED') {
+    bgColor = 'bg-[#5865f2] text-white'; // Blue
+    label = 'Dispatched';
+  } else if (status === 'ON_TRIP') {
+    bgColor = 'bg-[#5865f2] text-white'; // Blue
+    label = 'On Trip';
+  } else if (status === 'COMPLETED') {
+    bgColor = 'bg-[#23a559] text-white'; // Green
+    label = 'Completed';
+  } else if (status === 'DRAFT') {
+    bgColor = 'bg-[#949ba4] text-white'; // Gray
+    label = 'Draft';
+  }
+
+  return (
+    <span className={`inline-flex items-center px-3 py-1 rounded-md text-xs font-semibold ${bgColor}`}>
+      {label}
+    </span>
+  );
+}
+
+function StatusBar({ label, count = 0, total = 0, color }: { label: string; count: number; total: number; color: string }) {
+  const percentage = total > 0 ? (count / total) * 100 : 0;
+  
+  return (
+    <div className="flex items-center gap-4">
+      <div className="w-24 text-sm text-[#dbdee1] font-medium">{label}</div>
+      <div className="flex-1 h-3 bg-[#1e1f22] rounded-full overflow-hidden border border-[#313338]">
+        <div 
+          className={`h-full ${color} rounded-r-full transition-all duration-500`} 
+          style={{ width: `${percentage}%` }}
+        />
       </div>
     </div>
   );
