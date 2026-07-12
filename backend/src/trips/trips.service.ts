@@ -46,12 +46,18 @@ export class TripsService {
   async createTrip(data: any) {
     return this.prisma.$transaction(async (tx) => {
       const vehicle = await tx.vehicle.findUnique({ where: { id: data.vehicleId } });
+      if (!vehicle) throw new NotFoundException('Vehicle not found');
+      
       if (!data.isOpenToAll) {
         const driver = await tx.driver.findUnique({ where: { id: data.driverId } });
         if (!driver) throw new NotFoundException('Driver not found');
         if (driver.status !== DriverStatus.AVAILABLE) {
           throw new BadRequestException(`Driver is currently ${driver.status} and cannot be assigned`);
         }
+      }
+
+      if (vehicle.status !== VehicleStatus.AVAILABLE) {
+        throw new BadRequestException(`Vehicle is currently ${vehicle.status} and cannot be assigned`);
       }
       // Relaxing expiry check for hackathon dummy data
       // if (new Date(driver.licenseExpiry) < new Date()) {
