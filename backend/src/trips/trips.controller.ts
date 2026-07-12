@@ -29,19 +29,19 @@ export class TripsController {
   }
 
   @Post(':id/dispatch')
-  @Roles('ADMIN', 'FLEET_MANAGER')
+  @Roles('DRIVER')
   dispatchTrip(@Param('id') id: string) {
     return this.tripsService.dispatchTrip(id);
   }
 
   @Post(':id/start')
-  @Roles('ADMIN', 'FLEET_MANAGER', 'DRIVER')
+  @Roles('DRIVER')
   startTrip(@Param('id') id: string, @Request() req: any) {
     return this.tripsService.startTrip(id, req.user);
   }
 
   @Post(':id/complete')
-  @Roles('ADMIN', 'FLEET_MANAGER', 'DRIVER')
+  @Roles('DRIVER')
   completeTrip(@Param('id') id: string, @Body('finalDistance') finalDistance?: number) {
     return this.tripsService.completeTrip(id, finalDistance);
   }
@@ -59,8 +59,20 @@ export class TripsController {
   }
 
   @Post(':id/log')
-  @Roles('ADMIN', 'FLEET_MANAGER', 'DRIVER')
+  @Roles('DRIVER')
   logTrip(@Param('id') id: string, @Body() data: any) {
     return this.tripsService.logTripData(id, data);
+  }
+
+  @Post(':id/accept')
+  @Roles('DRIVER')
+  acceptTrip(@Param('id') id: string, @Request() req: any) {
+    return this.tripsService.acceptTrip(id, req.user);
+  }
+
+  @Post(':id/expense')
+  @Roles('DRIVER')
+  logExpense(@Param('id') id: string, @Body() data: any) {
+    return this.tripsService.addMidTripExpense(id, data);
   }
 }

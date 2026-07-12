@@ -14,6 +14,7 @@ import Maintenance from '@/pages/maintenance/Maintenance';
 import FuelExpenses from '@/pages/fuel/FuelExpenses';
 import Analytics from '@/pages/analytics/Analytics';
 import Settings from '@/pages/settings/Settings';
+import Profile from '@/pages/profile/Profile';
 
 export const router = createBrowserRouter([
   {
@@ -51,7 +52,7 @@ export const router = createBrowserRouter([
       { path: 'fuel', element: <FuelExpenses /> },
       { path: 'analytics', element: <Analytics /> },
       { path: 'safety-reports', element: <PlaceholderPage title="Safety Reports" description="Review incident logs and driver safety." /> },
-      { path: 'profile', element: <PlaceholderPage title="My Profile" description="Update your personal details." /> },
+      { path: 'profile', element: <Profile /> },
       { path: 'settings', element: <Settings /> },
     ],
   },

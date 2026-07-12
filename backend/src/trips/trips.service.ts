@@ -11,6 +11,7 @@ export class TripsService {
       include: {
         vehicle: true,
         driver: true,
+        expenses: true,
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -38,6 +39,7 @@ export class TripsService {
       include: {
         vehicle: true,
         driver: true,
+        expenses: true,
       },
       orderBy: { scheduledStartTime: 'asc' }
     });
@@ -98,6 +100,9 @@ export class TripsService {
       if (trip.status !== TripStatus.ASSIGNED && trip.status !== TripStatus.DRAFT) {
         throw new BadRequestException('Only ASSIGNED or DRAFT trips can be dispatched');
       }
+      if (!trip.driver || !trip.driverId) {
+        throw new BadRequestException('Trip must be assigned to a driver before it can be dispatched');
+      }
 
       if (trip.vehicle.status !== VehicleStatus.AVAILABLE) {
         throw new BadRequestException(`Vehicle is currently ${trip.vehicle.status} and cannot be dispatched`);
@@ -135,6 +140,9 @@ export class TripsService {
       if (!trip) throw new NotFoundException('Trip not found');
       if (trip.status !== TripStatus.READY_TO_START) {
         throw new BadRequestException('Only READY_TO_START trips can be started');
+      }
+      if (!trip.driver) {
+        throw new BadRequestException('Trip is missing a driver');
       }
 
       // If requested by a driver, ensure it's their trip
@@ -175,10 +183,12 @@ export class TripsService {
         }
       });
 
-      await tx.driver.update({
-        where: { id: trip.driverId },
-        data: { status: DriverStatus.AVAILABLE }
-      });
+      if (trip.driverId) {
+        await tx.driver.update({
+          where: { id: trip.driverId },
+          data: { status: DriverStatus.AVAILABLE }
+        });
+      }
 
       return tx.trip.update({
         where: { id },
@@ -205,10 +215,12 @@ export class TripsService {
           data: { status: VehicleStatus.AVAILABLE }
         });
 
-        await tx.driver.update({
-          where: { id: trip.driverId },
-          data: { status: DriverStatus.AVAILABLE }
-        });
+        if (trip.driverId) {
+          await tx.driver.update({
+            where: { id: trip.driverId },
+            data: { status: DriverStatus.AVAILABLE }
+          });
+        }
       }
 
       return tx.trip.update({
@@ -242,6 +254,55 @@ export class TripsService {
         },
         include: { vehicle: true, driver: true }
       });
+    });
+  }
+
+  async acceptTrip(id: string, user: any) {
+    return this.prisma.$transaction(async (tx) => {
+      if (user.role !== 'DRIVER') throw new ForbiddenException('Only drivers can accept trips');
+      const trip = await tx.trip.findUnique({ where: { id }, include: { driver: true } });
+      if (!trip) throw new NotFoundException('Trip not found');
+      if (trip.driver?.name !== user.name) throw new ForbiddenException('This trip is not assigned to you');
+      if (trip.status !== 'ASSIGNED') throw new BadRequestException('Trip is not in ASSIGNED state');
+      if (trip.driverAcceptedAt) throw new BadRequestException('Trip already accepted');
+
+      return tx.trip.update({
+        where: { id },
+        data: { driverAcceptedAt: new Date() },
+        include: { vehicle: true, driver: true }
+      });
+    });
+  }
+
+  async addMidTripExpense(id: string, data: any) {
+    return this.prisma.$transaction(async (tx) => {
+      const trip = await tx.trip.findUnique({ where: { id } });
+      if (!trip) throw new NotFoundException('Trip not found');
+      
+      if (data.fuelLiters && data.fuelCost) {
+        await tx.fuelLog.create({
+          data: {
+            vehicleId: trip.vehicleId,
+            liters: Number(data.fuelLiters),
+            cost: Number(data.fuelCost),
+            odometer: trip.plannedDistance // Just a placeholder, as we don't know exact odometer mid-trip unless provided
+          }
+        });
+      }
+
+      if (data.miscCost > 0) {
+        await tx.expense.create({
+          data: {
+            vehicleId: trip.vehicleId,
+            tripId: trip.id,
+            type: data.expenseType || 'MISC',
+            amount: Number(data.miscCost),
+            description: data.description || 'Mid-trip expense'
+          }
+        });
+      }
+
+      return trip;
     });
   }
 

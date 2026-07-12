@@ -18,6 +18,34 @@ export class DriversService {
     return driver;
   }
 
+  async findByName(name: string) {
+    const driver = await this.prisma.driver.findFirst({
+      where: { name: { equals: name, mode: 'insensitive' } },
+      include: {
+        trips: {
+          select: { id: true, status: true },
+        },
+      },
+    });
+    if (!driver) throw new NotFoundException(`No driver profile found for "${name}"`);
+
+    const totalTrips = driver.trips.length;
+    const completedTrips = driver.trips.filter(t => t.status === 'COMPLETED').length;
+    const activeTrips = driver.trips.filter(t => ['ASSIGNED', 'READY_TO_START', 'IN_PROGRESS'].includes(t.status)).length;
+    const cancelledTrips = driver.trips.filter(t => t.status === 'CANCELLED').length;
+
+    const { trips, ...profile } = driver;
+    return { ...profile, totalTrips, completedTrips, activeTrips, cancelledTrips };
+  }
+
+  async updateByName(name: string, updateDriverDto: UpdateDriverDto) {
+    const driver = await this.prisma.driver.findFirst({
+      where: { name: { equals: name, mode: 'insensitive' } },
+    });
+    if (!driver) throw new NotFoundException(`No driver profile found for "${name}"`);
+    return this.update(driver.id, updateDriverDto);
+  }
+
   async create(createDriverDto: CreateDriverDto) {
     const existing = await this.prisma.driver.findUnique({
       where: { licenseNumber: createDriverDto.licenseNumber }

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request } from '@nestjs/common';
 import { DriversService } from './drivers.service';
 import { CreateDriverDto, UpdateDriverDto } from './dto/driver.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -14,6 +14,24 @@ export class DriversController {
   @Roles('ADMIN', 'FLEET_MANAGER')
   create(@Body() createDriverDto: CreateDriverDto) {
     return this.driversService.create(createDriverDto);
+  }
+
+  @Get('my-profile')
+  @Roles('DRIVER')
+  getMyProfile(@Request() req: any) {
+    return this.driversService.findByName(req.user.name);
+  }
+
+  @Patch('my-profile')
+  @Roles('DRIVER')
+  updateMyProfile(@Request() req: any, @Body() updateDriverDto: UpdateDriverDto) {
+    return this.driversService.updateByName(req.user.name, updateDriverDto);
+  }
+
+  @Patch('my-profile/status')
+  @Roles('DRIVER')
+  toggleMyStatus(@Request() req: any, @Body() body: { status: 'AVAILABLE' | 'OFF_DUTY' }) {
+    return this.driversService.updateByName(req.user.name, { status: body.status } as any);
   }
 
   @Get()

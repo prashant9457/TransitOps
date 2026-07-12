@@ -7,6 +7,7 @@ import { authService } from '@/services/auth.service';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { LogIn, UserPlus } from 'lucide-react';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -56,7 +57,7 @@ export default function Login() {
     onSuccess: (data) => {
       login(data.accessToken, data.user);
       navigate('/dashboard');
-      toast.success('Registration successful. Welcome to TransitOps!');
+      toast.success('Registration successful. Welcome!');
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Registration failed');
@@ -68,145 +69,148 @@ export default function Login() {
 
   return (
     <div className="w-full">
-      <div className="flex gap-4 mb-6 border-b border-[#313338] pb-4">
+      <div className="flex bg-[#1e1f22] rounded-xl p-1.5 mb-8 shadow-inner">
         <button 
           onClick={() => setActiveTab('login')}
-          className={`flex-1 text-sm font-semibold uppercase tracking-wider pb-2 transition-colors ${activeTab === 'login' ? 'text-[#5865f2] border-b-2 border-[#5865f2]' : 'text-[#949ba4] hover:text-[#dbdee1]'}`}
+          className={`flex-1 flex justify-center items-center gap-2 text-sm font-semibold py-3 rounded-lg transition-all duration-300 ${activeTab === 'login' ? 'bg-[#5865f2] text-white shadow-md transform scale-[1.02]' : 'text-[#949ba4] hover:text-[#f2f3f5] hover:bg-[#313338]'}`}
         >
-          Sign In
+          <LogIn size={18} /> Sign In
         </button>
         <button 
           onClick={() => setActiveTab('register')}
-          className={`flex-1 text-sm font-semibold uppercase tracking-wider pb-2 transition-colors ${activeTab === 'register' ? 'text-[#5865f2] border-b-2 border-[#5865f2]' : 'text-[#949ba4] hover:text-[#dbdee1]'}`}
+          className={`flex-1 flex justify-center items-center gap-2 text-sm font-semibold py-3 rounded-lg transition-all duration-300 ${activeTab === 'register' ? 'bg-[#5865f2] text-white shadow-md transform scale-[1.02]' : 'text-[#949ba4] hover:text-[#f2f3f5] hover:bg-[#313338]'}`}
         >
-          New Driver Registration
+          <UserPlus size={18} /> New Driver
         </button>
       </div>
 
-      {activeTab === 'login' && (
-        <form onSubmit={handleLoginSubmit(onLogin)} className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-[#949ba4] uppercase tracking-wider mb-1.5">Email Address</label>
-            <input 
-              type="email" 
-              {...registerLogin('email')}
-              className="block w-full bg-[#1e1f22] text-[#dbdee1] text-sm border border-[#313338] rounded-md px-4 py-2.5 focus:outline-none focus:border-[#5865f2] transition-colors" 
-              placeholder="admin@transitops.com" 
-            />
-            {loginErrors.email && <p className="text-[#f23f42] text-xs mt-1">{loginErrors.email.message}</p>}
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-[#949ba4] uppercase tracking-wider mb-1.5">Password</label>
-            <input 
-              type="password" 
-              {...registerLogin('password')}
-              className="block w-full bg-[#1e1f22] text-[#dbdee1] text-sm border border-[#313338] rounded-md px-4 py-2.5 focus:outline-none focus:border-[#5865f2] transition-colors" 
-              placeholder="••••••••" 
-            />
-            {loginErrors.password && <p className="text-[#f23f42] text-xs mt-1">{loginErrors.password.message}</p>}
-          </div>
-          <button 
-            type="submit" 
-            disabled={loginMutation.isPending}
-            className="block w-full bg-[#5865f2] text-white py-2.5 mt-2 rounded-md hover:bg-[#4752c4] font-medium text-sm text-center transition-colors disabled:opacity-50"
-          >
-            {loginMutation.isPending ? 'Signing in...' : 'Sign In'}
-          </button>
-        </form>
-      )}
-
-      {activeTab === 'register' && (
-        <form onSubmit={handleRegisterSubmit(onRegister)} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-[#949ba4] uppercase tracking-wider mb-1.5">Full Name</label>
-              <input 
-                type="text" 
-                {...registerSignup('name')}
-                className="block w-full bg-[#1e1f22] text-[#dbdee1] text-sm border border-[#313338] rounded-md px-4 py-2.5 focus:outline-none focus:border-[#23a559] transition-colors" 
-                placeholder="John Doe" 
-              />
-              {registerErrors.name && <p className="text-[#f23f42] text-xs mt-1">{registerErrors.name.message}</p>}
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-[#949ba4] uppercase tracking-wider mb-1.5">Contact</label>
-              <input 
-                type="text" 
-                {...registerSignup('contactNumber')}
-                className="block w-full bg-[#1e1f22] text-[#dbdee1] text-sm border border-[#313338] rounded-md px-4 py-2.5 focus:outline-none focus:border-[#23a559] transition-colors" 
-                placeholder="+91 9876543210" 
-              />
-              {registerErrors.contactNumber && <p className="text-[#f23f42] text-xs mt-1">{registerErrors.contactNumber.message}</p>}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-[#949ba4] uppercase tracking-wider mb-1.5">Email Address</label>
+      <div className="transition-all duration-300">
+        {activeTab === 'login' && (
+          <form onSubmit={handleLoginSubmit(onLogin)} className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="space-y-2">
+              <label className="block text-sm font-bold text-[#949ba4] uppercase tracking-wider">Email Address</label>
               <input 
                 type="email" 
-                {...registerSignup('email')}
-                className="block w-full bg-[#1e1f22] text-[#dbdee1] text-sm border border-[#313338] rounded-md px-4 py-2.5 focus:outline-none focus:border-[#23a559] transition-colors" 
+                {...registerLogin('email')}
+                className="block w-full bg-[#1e1f22] text-[#dbdee1] text-base border border-[#313338] rounded-xl px-4 py-3 outline-none focus:border-[#5865f2] focus:ring-1 focus:ring-[#5865f2] transition-all" 
                 placeholder="driver@transitops.com" 
               />
-              {registerErrors.email && <p className="text-[#f23f42] text-xs mt-1">{registerErrors.email.message}</p>}
+              {loginErrors.email && <p className="text-[#f23f42] text-sm mt-1">{loginErrors.email.message}</p>}
             </div>
-            <div>
-              <label className="block text-xs font-bold text-[#949ba4] uppercase tracking-wider mb-1.5">Password</label>
+            
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="block text-sm font-bold text-[#949ba4] uppercase tracking-wider">Password</label>
+                <a href="#" className="text-sm text-[#5865f2] hover:text-[#4752c4] font-medium transition-colors">Forgot password?</a>
+              </div>
               <input 
                 type="password" 
-                {...registerSignup('password')}
-                className="block w-full bg-[#1e1f22] text-[#dbdee1] text-sm border border-[#313338] rounded-md px-4 py-2.5 focus:outline-none focus:border-[#23a559] transition-colors" 
+                {...registerLogin('password')}
+                className="block w-full bg-[#1e1f22] text-[#dbdee1] text-base border border-[#313338] rounded-xl px-4 py-3 outline-none focus:border-[#5865f2] focus:ring-1 focus:ring-[#5865f2] transition-all" 
                 placeholder="••••••••" 
               />
-              {registerErrors.password && <p className="text-[#f23f42] text-xs mt-1">{registerErrors.password.message}</p>}
+              {loginErrors.password && <p className="text-[#f23f42] text-sm mt-1">{loginErrors.password.message}</p>}
             </div>
-          </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-[#949ba4] uppercase tracking-wider mb-1.5">License #</label>
-              <input 
-                type="text" 
-                {...registerSignup('licenseNumber')}
-                className="block w-full bg-[#1e1f22] text-[#dbdee1] text-sm border border-[#313338] rounded-md px-4 py-2.5 focus:outline-none focus:border-[#23a559] transition-colors" 
-                placeholder="GJ-01-XXXX" 
-              />
-              {registerErrors.licenseNumber && <p className="text-[#f23f42] text-xs mt-1">{registerErrors.licenseNumber.message}</p>}
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-[#949ba4] uppercase tracking-wider mb-1.5">Category</label>
-              <select 
-                {...registerSignup('licenseCategory')}
-                className="block w-full bg-[#1e1f22] text-[#dbdee1] text-sm border border-[#313338] rounded-md px-4 py-2.5 focus:outline-none focus:border-[#23a559] transition-colors" 
-              >
-                <option value="">Select</option>
-                <option value="LMV">LMV (Light)</option>
-                <option value="HMV">HMV (Heavy)</option>
-                <option value="TRANS">TRANS (Commercial)</option>
-              </select>
-              {registerErrors.licenseCategory && <p className="text-[#f23f42] text-xs mt-1">{registerErrors.licenseCategory.message}</p>}
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-[#949ba4] uppercase tracking-wider mb-1.5">Expiry Date</label>
-              <input 
-                type="date" 
-                {...registerSignup('licenseExpiry')}
-                className="block w-full bg-[#1e1f22] text-[#dbdee1] text-sm border border-[#313338] rounded-md px-4 py-2.5 focus:outline-none focus:border-[#23a559] transition-colors" 
-              />
-              {registerErrors.licenseExpiry && <p className="text-[#f23f42] text-xs mt-1">{registerErrors.licenseExpiry.message}</p>}
-            </div>
-          </div>
+            <button 
+              type="submit" 
+              disabled={loginMutation.isPending}
+              className="w-full bg-[#5865f2] text-white py-3.5 mt-4 rounded-xl hover:bg-[#4752c4] hover:shadow-[0_0_15px_rgba(88,101,242,0.4)] font-bold text-base transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0"
+            >
+              {loginMutation.isPending ? 'Authenticating...' : 'Sign In to Dashboard'}
+            </button>
+          </form>
+        )}
 
-          <button 
-            type="submit" 
-            disabled={registerMutation.isPending}
-            className="block w-full bg-[#23a559] text-white py-2.5 mt-2 rounded-md hover:bg-[#1f914e] font-medium text-sm text-center transition-colors disabled:opacity-50"
-          >
-            {registerMutation.isPending ? 'Registering...' : 'Register Driver Account'}
-          </button>
-        </form>
-      )}
+        {activeTab === 'register' && (
+          <form onSubmit={handleRegisterSubmit(onRegister)} className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="grid grid-cols-2 gap-5">
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-[#949ba4] uppercase tracking-wider">Full Name</label>
+                <input 
+                  type="text" 
+                  {...registerSignup('name')}
+                  className="block w-full bg-[#1e1f22] text-[#dbdee1] text-sm border border-[#313338] rounded-xl px-3 py-2.5 outline-none focus:border-[#5865f2] focus:ring-1 focus:ring-[#5865f2] transition-all" 
+                />
+                {registerErrors.name && <p className="text-[#f23f42] text-xs">{registerErrors.name.message}</p>}
+              </div>
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-[#949ba4] uppercase tracking-wider">Contact</label>
+                <input 
+                  type="text" 
+                  {...registerSignup('contactNumber')}
+                  className="block w-full bg-[#1e1f22] text-[#dbdee1] text-sm border border-[#313338] rounded-xl px-3 py-2.5 outline-none focus:border-[#5865f2] focus:ring-1 focus:ring-[#5865f2] transition-all" 
+                />
+                {registerErrors.contactNumber && <p className="text-[#f23f42] text-xs">{registerErrors.contactNumber.message}</p>}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-5">
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-[#949ba4] uppercase tracking-wider">Email Address</label>
+                <input 
+                  type="email" 
+                  {...registerSignup('email')}
+                  className="block w-full bg-[#1e1f22] text-[#dbdee1] text-sm border border-[#313338] rounded-xl px-3 py-2.5 outline-none focus:border-[#5865f2] focus:ring-1 focus:ring-[#5865f2] transition-all" 
+                />
+                {registerErrors.email && <p className="text-[#f23f42] text-xs">{registerErrors.email.message}</p>}
+              </div>
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-[#949ba4] uppercase tracking-wider">Password</label>
+                <input 
+                  type="password" 
+                  {...registerSignup('password')}
+                  className="block w-full bg-[#1e1f22] text-[#dbdee1] text-sm border border-[#313338] rounded-xl px-3 py-2.5 outline-none focus:border-[#5865f2] focus:ring-1 focus:ring-[#5865f2] transition-all" 
+                />
+                {registerErrors.password && <p className="text-[#f23f42] text-xs">{registerErrors.password.message}</p>}
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-4 border-t border-[#313338]">
+              <h4 className="text-xs font-bold text-[#949ba4] uppercase tracking-wider mb-3">License & Credential Details</h4>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <input 
+                    type="text" 
+                    {...registerSignup('licenseNumber')}
+                    placeholder="License ID"
+                    className="block w-full bg-[#1e1f22] text-[#dbdee1] text-sm border border-[#313338] rounded-xl px-3 py-2.5 outline-none focus:border-[#5865f2] focus:ring-1 focus:ring-[#5865f2] transition-all" 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <select 
+                    {...registerSignup('licenseCategory')}
+                    className="block w-full bg-[#1e1f22] text-[#dbdee1] text-sm border border-[#313338] rounded-xl px-3 py-2.5 outline-none focus:border-[#5865f2] focus:ring-1 focus:ring-[#5865f2] transition-all" 
+                  >
+                    <option value="">Category</option>
+                    <option value="LMV">LMV</option>
+                    <option value="HMV">HMV</option>
+                    <option value="TRANS">TRANS</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <input 
+                    type="date" 
+                    {...registerSignup('licenseExpiry')}
+                    className="block w-full bg-[#1e1f22] text-[#949ba4] text-sm border border-[#313338] rounded-xl px-3 py-2.5 outline-none focus:border-[#5865f2] focus:ring-1 focus:ring-[#5865f2] transition-all" 
+                  />
+                </div>
+              </div>
+              {(registerErrors.licenseNumber || registerErrors.licenseCategory || registerErrors.licenseExpiry) && (
+                <p className="text-[#f23f42] text-xs mt-2 font-medium">Please fill all license details correctly.</p>
+              )}
+            </div>
+
+            <button 
+              type="submit" 
+              disabled={registerMutation.isPending}
+              className="w-full bg-[#23a559] text-white py-3.5 mt-6 rounded-xl hover:bg-[#1c8446] hover:shadow-[0_0_15px_rgba(35,165,89,0.4)] font-bold text-base transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0"
+            >
+              {registerMutation.isPending ? 'Registering...' : 'Complete Registration'}
+            </button>
+          </form>
+        )}
+      </div>
     </div>
   );
 }

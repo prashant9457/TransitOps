@@ -42,6 +42,7 @@ export interface Trip {
   createdAt?: string;
   vehicle?: Vehicle;
   driver?: Driver;
+  expenses?: Expense[];
 }
 
 export interface MaintenanceLog {
