@@ -72,9 +72,8 @@ Experience the seamless workflow and modern UI of TransitOps:
 [![Admin Login Demo](./assets/adminDashboard.png)](https://github.com/prashant9457/TransitOps/blob/main/assets/adminLogin.mp4)
 *(Click the image above to watch the Admin Login Demo)*
 
-### Trip Maker & Expense Workflow (Video)
-[![Trip Maker Demo](./assets/adminUsers.png)](https://github.com/prashant9457/TransitOps/blob/main/assets/TripMaker.mp4)
-*(Click the image above to watch the Trip Maker Demo)*
+### Trip Maker & Expense Workflow (GIF)
+![Trip Maker Demo](./assets/ezgif-6b57cb15be07082a.gif)
 
 ### Authentication (Login & Signup)
 ![Login and Signup](./assets/loginandsignup.png)
