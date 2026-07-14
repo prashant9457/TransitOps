@@ -69,16 +69,12 @@ TransitOps simplifies fleet management into three core workflows:
 Experience the seamless workflow and modern UI of TransitOps:
 
 ### Admin Login & Dashboard Overview (Video)
-*(Click the link below if the video player does not load)*  
-[Watch Admin Login Demo](./assets/adminLogin.mp4)
-
-<video src="./assets/adminLogin.mp4" controls width="100%"></video>
+[![Admin Login Demo](./assets/adminDashboard.png)](https://github.com/prashant9457/TransitOps/blob/main/assets/adminLogin.mp4)
+*(Click the image above to watch the Admin Login Demo)*
 
 ### Trip Maker & Expense Workflow (Video)
-*(Click the link below if the video player does not load)*  
-[Watch Trip Maker Demo](./assets/TripMaker.mp4)
-
-<video src="./assets/TripMaker.mp4" controls width="100%"></video>
+[![Trip Maker Demo](./assets/adminUsers.png)](https://github.com/prashant9457/TransitOps/blob/main/assets/TripMaker.mp4)
+*(Click the image above to watch the Trip Maker Demo)*
 
 ### Authentication (Login & Signup)
 ![Login and Signup](./assets/loginandsignup.png)
